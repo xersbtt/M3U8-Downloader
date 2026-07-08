@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M3U8 Multi-Stream Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="glow-bg"></div>
+  
+  <div class="app-container">
+    <header class="app-header">
+      <div class="logo">
+        <span class="icon">⚡</span>
+        <h1>M3U8 MULTI-STREAM DOWNLOADER</h1>
+      </div>
+      <div class="header-right">
+        <div class="lang-toggle" id="lang-toggle" title="Chuyển đổi ngôn ngữ / Switch language" data-i18n-title="lang.toggleTitle">
+          <button type="button" class="lang-btn" data-lang="vi">VI</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+        <div class="system-status" id="system-status">
+          <span class="status-dot"></span>
+          <span class="status-text" data-i18n="status.connecting">Đang kết nối...</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline btn-outline-danger shutdown-btn" id="btn-shutdown" title="Tắt server hoàn toàn (dừng mọi tiến trình tải và đóng trình duyệt)" data-i18n-title="shutdown.title" data-i18n="shutdown.label">⏻ Tắt server</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- Cấu hình tải xuống -->
+      <section class="card config-section">
+        <div class="card-header">
+          <h2 data-i18n="cfg.heading">1. Cấu hình tải xuống</h2>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="movie-url" data-i18n="cfg.urlLabel">Đường dẫn phim (URL)</label>
+            <input type="url" id="movie-url" placeholder="Nhập link phim (ví dụ: https://tv360.vn/movie/...)" data-i18n-placeholder="cfg.urlPlaceholder" required>
+          </div>
+
+          <div class="form-group">
+            <label for="download-dir" data-i18n="cfg.dirLabel">Thư mục lưu video & phụ đề</label>
+            <div class="input-action-group">
+              <input type="text" id="download-dir" placeholder="C:\Users\...\Downloads" required>
+              <button type="button" class="btn btn-secondary" id="btn-browse-dir" title="Chọn thư mục bằng hộp thoại Windows" data-i18n-title="cfg.browseTitle">
+                <span data-i18n="cfg.browse">📂 Chọn thư mục</span>
+              </button>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-block" id="btn-scrape">
+            <span data-i18n="btn.scrape">🔍 Quét danh sách tập phim</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Danh sách tập phim quét được -->
+      <section class="card episodes-section hidden" id="episodes-card">
+        <div class="card-header flex-header">
+          <h2 data-i18n="ep.heading">2. Chọn tập phim để tải</h2>
+          <div class="header-actions">
+            <button class="btn btn-sm btn-outline" id="btn-select-all" data-i18n="ep.selectAll">Chọn tất cả</button>
+            <button class="btn btn-sm btn-outline" id="btn-deselect-all" data-i18n="ep.deselectAll">Bỏ chọn</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="episodes-grid" id="episodes-container">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Stream Analysis & Track Selection -->
+          <div class="track-selection-area" id="track-selection-area">
+            <button type="button" class="btn btn-info btn-block" id="btn-analyze-streams">
+              <span data-i18n="btn.analyze">🔍 Phân tích luồng âm thanh & phụ đề</span>
+            </button>
+
+            <div class="track-config hidden" id="track-config">
+              <div class="track-panels">
+                <!-- Audio tracks panel -->
+                <div class="track-panel">
+                  <div class="track-panel-header">
+                    <span class="track-panel-icon">🔊</span>
+                    <h3 data-i18n="track.audioHeading">Luồng âm thanh</h3>
+                    <div class="track-panel-actions">
+                      <button class="btn btn-xs btn-outline" data-action="select-all-audio" data-i18n="track.all">Tất cả</button>
+                      <button class="btn btn-xs btn-outline" data-action="deselect-all-audio" data-i18n="track.none">Bỏ chọn</button>
+                    </div>
+                  </div>
+                  <div class="track-list" id="audio-tracks-list">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+
+                <!-- Subtitle tracks panel -->
+                <div class="track-panel">
+                  <div class="track-panel-header">
+                    <span class="track-panel-icon">💬</span>
+                    <h3 data-i18n="track.subHeading">Luồng phụ đề</h3>
+                    <div class="track-panel-actions">
+                      <button class="btn btn-xs btn-outline" data-action="select-all-subs" data-i18n="track.all">Tất cả</button>
+                      <button class="btn btn-xs btn-outline" data-action="deselect-all-subs" data-i18n="track.none">Bỏ chọn</button>
+                    </div>
+                  </div>
+                  <div class="track-list" id="subtitle-tracks-list">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+              </div>
+
+              <div class="track-config-info">
+                <span class="info-icon">ℹ️</span>
+                <span data-i18n-html="track.info">Cấu hình này sẽ áp dụng cho <strong>tất cả</strong> các tập phim đã chọn. Nhiều luồng âm thanh sẽ được gộp vào 1 file MKV.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="download-actions">
+            <label class="force-redownload" title="Bỏ qua lịch sử: tải lại và ghi đè cả những tập đã tải thành công trước đó" data-i18n-title="force.title">
+              <input type="checkbox" id="force-redownload">
+              <span data-i18n="force.label">Tải lại cả tập đã thành công (ghi đè file cũ)</span>
+            </label>
+            <button type="button" class="btn btn-success btn-large" id="btn-start-download">
+              <span data-i18n="btn.start">🚀 BẮT ĐẦU TẢI XUỐNG</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tiến độ tải xuống -->
+      <section class="card progress-section hidden" id="progress-card">
+        <div class="card-header flex-header">
+          <h2 data-i18n="prog.heading">3. Tiến độ tải xuống</h2>
+          <div class="job-summary" id="job-summary">
+            <span class="summary-badge active" id="summary-active">0 đang tải</span>
+            <span class="summary-badge completed" id="summary-completed">0 hoàn tất</span>
+            <span class="summary-badge failed" id="summary-failed">0 lỗi</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Overall queue progress -->
+          <div class="overall-progress" id="overall-progress">
+            <div class="overall-progress-text">
+              <span id="overall-progress-label" data-i18n="prog.overallLabel">Tiến độ chung</span>
+              <span id="overall-progress-count">0 / 0 tập</span>
+            </div>
+            <div class="progress-bar-container overall">
+              <div class="progress-bar-fill" id="overall-progress-bar"></div>
+            </div>
+          </div>
+          <!-- Individual concurrent stream slots rendered here -->
+          <div class="streams-container" id="streams-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Lịch sử tải xuống (Queue / History) -->
+      <section class="card history-section" id="history-card">
+        <div class="card-header flex-header">
+          <h2 data-i18n="hist.heading">4. Lịch sử tải xuống</h2>
+          <div class="header-actions">
+            <select id="history-filter" class="history-filter" title="Lọc theo trạng thái" data-i18n-title="hist.filterTitle">
+              <option value="all" data-i18n="hist.filterAll">Tất cả</option>
+              <option value="failed" data-i18n="hist.filterFailed">Chỉ tập lỗi</option>
+              <option value="success" data-i18n="hist.filterSuccess">Chỉ tập thành công</option>
+              <option value="pending" data-i18n="hist.filterPending">Đang chờ</option>
+            </select>
+            <button class="btn btn-sm btn-outline" id="btn-retry-failed" title="Đặt lại và tải lại toàn bộ các tập bị lỗi" data-i18n-title="hist.retryFailedTitle" data-i18n="hist.retryFailed">🔄 Tải lại tập lỗi</button>
+            <button class="btn btn-sm btn-outline btn-outline-danger" id="btn-clear-history" title="Xóa toàn bộ lịch sử (không xóa file video đã tải)" data-i18n-title="hist.clearTitle" data-i18n="hist.clear">🗑 Xóa lịch sử</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="history-table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th data-i18n="hist.colEpisode">Tập phim</th>
+                  <th data-i18n="hist.colStatus">Trạng thái</th>
+                  <th data-i18n="hist.colAttempts">Số lần thử</th>
+                  <th data-i18n="hist.colLast">Lần cuối</th>
+                  <th data-i18n="hist.colError">Lý do lỗi</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody"></tbody>
+            </table>
+            <div class="history-empty" id="history-empty" data-i18n="hist.empty">Chưa có lịch sử tải xuống nào.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Nhật ký hệ thống (Console Logs) -->
+      <section class="card console-section">
+        <div class="card-header flex-header">
+          <h2 data-i18n="console.heading">Nhật ký hoạt động</h2>
+          <button class="btn btn-sm btn-outline" id="btn-clear-logs" data-i18n="console.clear">Xóa log</button>
+        </div>
+        <div class="card-body">
+          <div class="console-log-box" id="console-logs">
+            <div class="log-line system-msg" data-i18n="console.init">Hệ thống đã khởi tạo thành công. Vui lòng nhập link phim và cấu hình để bắt đầu.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

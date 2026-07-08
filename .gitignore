@@ -1,0 +1,11 @@
+node_modules/
+user_data/
+tools/
+user_data_test/
+downloads/
+download_status.json
+settings.json
+test/next_data.json
+test/page_props_keys.json
+.DS_Store
+*.log

@@ -1,0 +1,28 @@
+{
+  "user_data_dir": "./user_data",
+  "download_dir": "./downloads",
+  "ffmpeg_path": "ffmpeg",
+  "download_engine": "auto",
+  "n_m3u8dl_re_path": "./tools/N_m3u8DL-RE/N_m3u8DL-RE.exe",
+  "re_thread_count": 16,
+  "max_concurrent_downloads": 3,
+  "max_retries": 5,
+  "sites": {
+    "default": {
+      "episode_selector": "a.episode-link, .episode-list a, .playlist a",
+      "play_button_selector": "button.play-btn, .video-player, video"
+    },
+    "localhost:8080": {
+      "episode_selector": "a.episode-link",
+      "play_button_selector": "button.play-btn"
+    },
+    "tv360.vn": {
+      "episode_selector": "a[href*='/movie/']",
+      "play_button_selector": "button[title='Xem ngay'], button[title='Xem'], .video-player, video"
+    },
+    "www.tv360.vn": {
+      "episode_selector": "a[href*='/movie/']",
+      "play_button_selector": "button[title='Xem ngay'], button[title='Xem'], .video-player, video"
+    }
+  }
+}
