@@ -1,57 +1,112 @@
-# M3U8 Downloader & Browser Automation Tool
+# ⚡ M3U8 Multi-Stream Downloader
 
-Công cụ tự động hóa trình duyệt sử dụng Playwright để cào danh sách tập phim, bắt gói tin HLS stream (`.m3u8`), phân tích chất lượng tốt nhất (Video Max, Audio Tiếng gốc, Phụ đề Tiếng Việt) và tự động gọi FFmpeg tải xuống & hợp nhất thành video MP4 hoàn chỉnh.
+A browser-automation toolkit powered by **Playwright** that scrapes episode lists, intercepts HLS streams (`.m3u8`), analyzes the master playlist for the best quality (highest-resolution video, original-language audio, subtitles), and automatically downloads & muxes everything into a complete MP4/MKV file via **FFmpeg**.
 
-Hệ thống được tối ưu hóa đặc biệt cho **TV360.vn** thông qua việc trích xuất hydration data Next.js kết hợp cào DOM lazy-load và hỗ trợ cơ chế lưu phiên đăng nhập (Persistent Browser Context).
-
----
-
-## 🚀 Các Tính Năng Nổi Bật
-
-- 🌐 **Giao diện Web UI Dashboard cao cấp**: Giao diện điều khiển Dashboard hiện đại, thiết kế tối sang trọng (Glassmorphism dark-mode). Cập nhật logs console và tiến trình tải thời gian thực bằng kết nối WebSocket.
-- 🌍 **Song ngữ Việt / Anh (Language toggle)**: Nút chuyển đổi ngôn ngữ **VI | EN** ngay trên thanh tiêu đề. Toàn bộ giao diện, bảng lịch sử và nhật ký hoạt động (kể cả log từ máy chủ) được dịch tức thời không cần tải lại trang. Lựa chọn ngôn ngữ được ghi nhớ trong trình duyệt (`localStorage`).
-- ⚡ **Khởi chạy ngầm thông minh (Smart launchers)**:
-  - `Quick_Start.bat`: Kiểm tra server đã chạy chưa (qua `/api/health`) — nếu đã chạy thì chỉ mở trình duyệt, không khởi động trùng lặp. Nếu chưa, khởi động ẩn trong nền, chờ server sẵn sàng và **hiển thị lỗi cụ thể** (từ `server_err.log`) nếu khởi động thất bại.
-  - Nút **⏻ Tắt server** ngay trên Dashboard: tắt server "nhẹ nhàng" — dừng toàn bộ tiến trình FFmpeg con (tránh FFmpeg mồ côi chạy ngầm), đóng trình duyệt Playwright và lưu hàng chờ an toàn trước khi thoát.
-  - `Stop_Server.bat`: Phương án dự phòng — gửi lệnh tắt nhẹ nhàng trước, chỉ buộc dừng tiến trình (kèm tiến trình con) khi server bị treo, và xác minh đúng tiến trình `node` để không ảnh hưởng ứng dụng khác trên cổng `3000`.
-- 📂 **Lưới chọn tập bằng Checkbox**: Hiển thị danh sách tập phim cào được dạng lưới, cho phép người dùng tự do lựa chọn tải lẻ hoặc tải nhiều tập bất kỳ (khác với CLI cũ chỉ hỗ trợ tải 1 hoặc tải tất cả).
-- 📊 **Theo dõi tiến độ (%) thực tế**: Tự động bóc tách thông tin thời lượng tập phim từ DOM (ví dụ: `46:14`) và đối chiếu với thời gian FFmpeg đã xử lý (`time=hh:mm:ss.xx`) để tính toán chính xác phần trăm tiến trình tải xuống.
-- 🔑 **Duy trì phiên đăng nhập (Session/Cookie)**: Sử dụng Playwright `persistentContext` lưu trữ tại thư mục dự án (`./user_data`), chỉ cần đăng nhập thủ công ở lần đầu tiên chạy, các lần tiếp theo hệ thống tự nhận diện session cũ.
-- 📁 **Ghi nhớ thư mục lưu**: Thư mục tải xuống được chọn/dùng gần nhất được lưu vào `settings.json` và tự động điền lại vào ô nhập ở lần khởi động sau. Hộp thoại "Chọn thư mục" cũng mở sẵn ở vị trí đó và luôn hiện lên trên cùng (foreground).
-- 🔊 **Ưu tiên âm thanh tiếng gốc (Original Audio Priority)**: Tự động phân tích các luồng track audio của Master Playlist để chọn luồng tiếng gốc (Hàn, Anh, Trung, Nhật...) thay vì bản thuyết minh/lồng tiếng Việt.
-- 📝 **Tự động tải & khớp phụ đề**: Bắt link phụ đề (.vtt, .srt) từ luồng mạng và tải về dưới dạng `.srt` trùng tên với video (`${safeTitle}.srt`), giúp các trình phát media tự động nhận diện phụ đề khi mở video.
-- 🔄 **Quản lý Resume hàng chờ bằng JSON Queue**: Quản lý hàng chờ tải bằng file `download_status.json`, tự động bỏ qua (skip) các tập đã tải thành công (`success`) và tiếp tục tải các tập còn lại (`pending`, `failed`).
-- 📜 **Bảng Lịch sử tải xuống ngay trên Dashboard**: Xem trạng thái, số lần thử, thời điểm và lý do lỗi của từng tập. Hỗ trợ tải lại từng tập (kể cả tập đã thành công), tải lại toàn bộ tập lỗi, xóa từng mục hoặc xóa toàn bộ lịch sử — không cần sửa tay file JSON.
-- 💪 **Tải lại & ghi đè (Force re-download)**: Tick ô "Tải lại cả tập đã thành công" trước khi bấm tải để bỏ qua lịch sử và tải lại từ đầu các tập đã chọn.
-- ⏱️ **Retry thông minh với Exponential Backoff**: Mặc định thử lại 5 lần mỗi tập (cấu hình qua `max_retries`), thời gian chờ giữa các lần thử tăng dần (3s → 6s → 12s...) giúp vượt qua lỗi CDN/token tạm thời.
-- 🚀 **Engine tải tốc độ cao N_m3u8DL-RE (tùy chọn)**: Khi phát hiện binary [N_m3u8DL-RE](https://github.com/nilaoda/N_m3u8DL-RE), hệ thống tự động tải song song **16 phân đoạn cùng lúc** cho mỗi luồng (nhanh hơn nhiều lần so với FFmpeg tải tuần tự), sau đó dùng FFmpeg ghép file cục bộ (stream copy). Không có binary → tự động dùng FFmpeg như cũ.
+Specially optimized for **TV360.vn** through Next.js hydration-data extraction combined with lazy-load DOM scraping. Supports persistent login sessions so you only need to sign in once.
 
 ---
 
-## 🛠️ Yêu Cầu Hệ Thống
+## 🚀 Key Features
 
-1. **Node.js** (Khuyến nghị phiên bản v18 trở lên).
-2. **FFmpeg** đã được cài đặt và cấu hình biến môi trường `PATH` (để hệ thống có thể gọi lệnh `ffmpeg` từ bất cứ đâu).
+### 🌐 Modern Web Dashboard
+A premium dark-themed control panel built with glassmorphism aesthetics. Real-time console logs and download progress are streamed live via **WebSocket** — no page refreshes needed.
+
+### 🌍 Bilingual UI (Vietnamese / English)
+One-click **VI | EN** language toggle in the header. The entire interface — including the history table, activity log, and even server-originated messages — is translated instantly without reloading. Your preference is saved in `localStorage`.
+
+### ⚡ Smart Launchers (Windows `.bat`)
+- **`Quick_Start.bat`**: Checks if the server is already running (via `/api/health`). If so, it simply opens the browser — no duplicate processes. If not, it starts the server in the background, waits until it's ready, and shows **specific error messages** (from `server_err.log`) if startup fails.
+- **`Stop_Server.bat`**: Graceful-first shutdown — sends a shutdown API call; only force-kills the process (including children) if the server is unresponsive. Identifies the correct `node` process to avoid affecting other apps on port `3000`.
+- **⏻ Shutdown button** on the Dashboard: Gracefully stops all FFmpeg child processes, closes the Playwright browser, and flushes the download queue before exiting.
+
+### 📂 Checkbox Episode Grid
+Episodes are displayed in a visual grid with checkboxes, letting you freely select any combination of episodes to download — unlike older CLI tools that only offered "download one" or "download all".
+
+### 🔊 Audio & Subtitle Track Selection
+Before downloading, you can **analyze the master playlist** to discover all available audio and subtitle tracks. Pick exactly which languages you want — the selection is applied to every episode in the batch. Multiple audio tracks are muxed into a single **MKV** file.
+
+### 🔑 Original Audio Priority
+The parser automatically classifies audio tracks by language (Korean, English, Japanese, Chinese, etc.) and flags Vietnamese dubs/voiceovers, making it easy to select the original-language audio instead of a dubbed version.
+
+### 📝 Automatic Subtitle Download & Matching
+Subtitles (`.vtt`, `.srt`) are captured from both the HLS master playlist and network interception. Each subtitle is saved as an `.srt` file matching the video filename (e.g., `Episode 1.vi.srt`), so media players auto-detect them. A "default" subtitle (Vietnamese → English → first available) is also copied as `Episode 1.srt` for maximum compatibility.
+
+### 📊 Real-Time Progress Tracking
+- **FFmpeg engine**: Parses `time=` and `speed=` from FFmpeg's stderr output.
+- **N_m3u8DL-RE engine**: Parses percentage and speed from console output.
+- Progress bars, speed indicators, and per-episode status are pushed to the Dashboard in real time via WebSocket.
+
+### 🚀 High-Speed Download Engine: N_m3u8DL-RE (Optional)
+When the [N_m3u8DL-RE](https://github.com/nilaoda/N_m3u8DL-RE) binary is detected, the system downloads **16 segments in parallel** per stream (vastly faster than FFmpeg's sequential approach), then uses FFmpeg to mux the local files (stream copy — instant). If the binary is not found, it falls back to FFmpeg automatically.
+
+### 🔄 Concurrent Downloads with Worker Pool
+Up to **3 episodes download simultaneously** by default (configurable via `max_concurrent_downloads`). M3U8 interception is serialized through a browser mutex (single Playwright page), but the actual downloading runs in parallel.
+
+### ⏱️ Smart Retry with Exponential Backoff
+Each episode is retried up to **5 times** (configurable via `max_retries`). Wait times between retries increase exponentially (3s → 6s → 12s → 24s → 30s cap), helping survive transient CDN errors and expired tokens.
+
+### 🔄 Resumable JSON Queue
+The download queue is persisted in `download_status.json`. On restart, episodes stuck in `downloading` are reset to `pending`, completed episodes are skipped, and failed episodes are retried — all automatically.
+
+### 💪 Force Re-Download
+Tick **"Re-download episodes already completed"** before starting to ignore history and re-download selected episodes from scratch, overwriting existing files.
+
+### 📜 Download History Panel
+View status, retry count, timestamps, and error reasons for every episode — right on the Dashboard. Supports:
+- Retrying individual episodes (even successful ones)
+- Retrying all failed episodes at once
+- Removing individual items or clearing the entire history
+- Filtering by status (All / Failed / Success / Pending)
+
+### 🔑 Persistent Login Sessions
+Uses Playwright's `persistentContext` stored in `./user_data`. Sign in manually on the first run — all subsequent runs automatically reuse your session/cookies.
+
+### 📁 Remembered Save Folder
+The last-used download directory is saved in `settings.json` and auto-filled on the next launch. The Windows folder picker dialog also opens at that location and is forced to the foreground.
+
+### 🖥️ CLI Mode
+Prefer the terminal? Run `npm start -- --cli` for a classic command-line interface with interactive prompts for URL input, episode selection, and audio/subtitle track picking.
 
 ---
 
-## 📦 Hướng Dẫn Cài Đặt
+## 🛠️ Requirements
 
-1. Di chuyển vào thư mục dự án và cài đặt các thư viện:
+| Requirement | Details |
+|---|---|
+| **Node.js** | v18 or later recommended |
+| **FFmpeg** | Installed and available in your system `PATH` |
+| **N_m3u8DL-RE** *(optional)* | For high-speed segment-parallel downloads. [Download here](https://github.com/nilaoda/N_m3u8DL-RE/releases) |
+
+---
+
+## 📦 Installation
+
+1. **Clone the repository** and navigate to the project directory:
+   ```bash
+   git clone https://github.com/xersbtt/M3U8-Downloader.git
+   cd M3U8-Downloader
+   ```
+
+2. **Install dependencies**:
    ```bash
    npm install
    ```
-   *(Hoặc chạy `npm.cmd install` trên Windows CMD nếu gặp lỗi chính sách bảo mật).*
-2. Cài đặt trình duyệt Chromium của Playwright:
+
+3. **Install the Playwright Chromium browser**:
    ```bash
    npx playwright install chromium
    ```
 
+4. *(Optional)* **Set up N_m3u8DL-RE** for faster downloads:
+   - Download the `win-x64` binary from the [N_m3u8DL-RE Releases](https://github.com/nilaoda/N_m3u8DL-RE/releases) page.
+   - Extract it to `./tools/N_m3u8DL-RE/` so the binary is at `./tools/N_m3u8DL-RE/N_m3u8DL-RE.exe`.
+
 ---
 
-## ⚙️ Cấu Hình Hệ Thống (`config.json`)
+## ⚙️ Configuration (`config.json`)
 
-File `config.json` nằm tại thư mục gốc chứa các cài đặt mặc định:
+The `config.json` file in the project root contains all system settings:
+
 ```json
 {
   "user_data_dir": "./user_data",
@@ -69,62 +124,106 @@ File `config.json` nằm tại thư mục gốc chứa các cài đặt mặc đ
     },
     "tv360.vn": {
       "episode_selector": "a[href*='/movie/']",
-      "play_button_selector": "button[title='Xem ngay'], button[title='Xem'], .video-player, video"
+      "play_button_selector": "button[title='Xem ngay'], ..."
     }
   }
 }
 ```
-* **user_data_dir**: Thư mục lưu cache trình duyệt, cookie, session đăng nhập.
-* **download_dir**: Thư mục lưu các video MP4 sau khi tải xong.
-* **download_engine**: `auto` (mặc định — dùng N_m3u8DL-RE nếu tìm thấy, không thì FFmpeg), `n_m3u8dl-re` (bắt buộc, tự fallback về FFmpeg kèm cảnh báo nếu thiếu binary), hoặc `ffmpeg`.
-* **n_m3u8dl_re_path**: Đường dẫn tới binary N_m3u8DL-RE. Tải bản `win-x64` từ [trang Releases](https://github.com/nilaoda/N_m3u8DL-RE/releases) và giải nén vào `./tools/N_m3u8DL-RE/`.
-* **re_thread_count**: Số phân đoạn tải song song mỗi luồng khi dùng N_m3u8DL-RE (mặc định: 16).
-* **max_concurrent_downloads**: Số tập tải đồng thời tối đa (mặc định: 3).
-* **max_retries**: Số lần thử lại tối đa cho mỗi tập khi gặp lỗi, với thời gian chờ tăng dần giữa các lần (mặc định: 5).
-* **sites**: Định nghĩa bộ chọn (selectors) cho danh sách tập và nút play cho từng tên miền (domain) cụ thể.
+
+| Key | Description |
+|---|---|
+| `user_data_dir` | Directory for browser cache, cookies, and login session data |
+| `download_dir` | Default directory for downloaded MP4/MKV videos and subtitles |
+| `ffmpeg_path` | Path or command name for FFmpeg (default: `ffmpeg` from PATH) |
+| `download_engine` | `auto` (default) — uses N_m3u8DL-RE if found, otherwise FFmpeg. Set to `n_m3u8dl-re` to force it (falls back to FFmpeg with a warning if missing), or `ffmpeg` to always use FFmpeg |
+| `n_m3u8dl_re_path` | Path to the N_m3u8DL-RE binary |
+| `re_thread_count` | Number of parallel segment downloads per stream when using N_m3u8DL-RE (default: `16`) |
+| `max_concurrent_downloads` | Maximum number of episodes downloading simultaneously (default: `3`) |
+| `max_retries` | Maximum retry attempts per episode on failure, with exponential backoff (default: `5`) |
+| `sites` | Per-domain CSS selectors for episode links and play buttons. The `default` entry is used for any domain not explicitly configured |
 
 ---
 
-## 🖥️ Hướng Dẫn Sử Dụng
+## 🖥️ Usage
 
-### Cách 1: Sử dụng Web UI Dashboard (Khuyên dùng)
+### Option 1: Web UI Dashboard (Recommended)
 
-1. Double-click trực tiếp vào tệp **[Quick_Start.bat](Quick_Start.bat)** trong thư mục dự án.
-2. Trình duyệt mặc định của hệ thống sẽ tự động mở trang: `http://localhost:3000`. Cửa sổ trình duyệt Playwright ( Chromium) cũng tự động mở ra.
-3. Dán link phim (URL) cần tải, chọn thư mục lưu (bằng cách ấn **📂 Chọn thư mục** để mở hộp thoại chọn thư mục Windows trực quan) và nhấn **Quét danh sách tập phim**.
-4. Chọn các tập phim muốn tải, cấu hình chế độ và nhấn **BẮT ĐẦU TẢI XUỐNG**.
-5. Để dừng server hoàn toàn, bấm nút **⏻ Tắt server** trên thanh tiêu đề Dashboard (khuyên dùng), hoặc chạy tệp **[Stop_Server.bat](Stop_Server.bat)**.
+1. **Double-click** `Quick_Start.bat` in the project folder.
+2. Your default browser will automatically open `http://localhost:3000`. A Playwright (Chromium) window will also launch.
+3. **Paste the movie URL**, choose a save folder (click **📂 Choose folder** for a native Windows dialog), and click **🔍 Scan episode list**.
+4. **Select episodes** using the checkbox grid.
+5. *(Optional)* Click **🔍 Analyze audio & subtitle tracks** to pick specific audio languages and subtitle tracks.
+6. Click **🚀 START DOWNLOAD**.
+7. To stop the server, click the **⏻ Shutdown** button in the Dashboard header, or run `Stop_Server.bat`.
 
-### Cách 2: Sử dụng Command Line (CLI Mode)
+### Option 2: Command Line (CLI Mode)
 
-Nếu bạn vẫn muốn dùng giao diện dòng lệnh đen trắng cổ điển:
-1. Mở terminal tại thư mục dự án và chạy:
+1. Open a terminal in the project directory and run:
    ```bash
    npm start -- --cli
    ```
-2. Nhập URL tập phim cần tải.
-3. Đăng nhập tài khoản (nếu cần) ở cửa sổ Chrome tự mở ra, quay lại màn hình CLI nhấn **[ENTER]** để cào danh sách tập.
-4. Chọn chế độ tải (1 - Chỉ tải tập hiện tại, 2 - Tải trọn bộ phim).
+2. Enter the URL of any episode.
+3. If login is required, sign in on the Chromium window that opens, then return to the terminal and press **Enter**.
+4. Choose your download mode:
+   - `1` — Download only the current episode
+   - `2` — Download all scraped episodes
+5. Select audio and subtitle tracks when prompted.
 
 ---
 
-## 🧪 Chạy Kiểm Thử Giả Lập (Mock Test)
+## 🧪 Mock Testing (Offline)
 
-Để kiểm tra các tính năng của hệ thống ở chế độ offline:
-1. Chạy server mock web streaming cục bộ:
+To test the system without a real streaming site:
+
+1. **Start the mock server**:
    ```bash
    node test/mock_server.js
    ```
-   *Server giả lập sẽ chạy tại địa chỉ http://localhost:8080*
-2. Chạy Dashboard hoặc CLI và nhập link tập phim giả lập:
+   *(Runs at `http://localhost:8080`)*
+
+2. **Launch the Dashboard or CLI** and enter the mock URL:
    ```
    http://localhost:8080/episode1.html
    ```
-3. Tiến hành quét tập và tải thử nghiệm. Video MP4 tải thành công sẽ được xuất ra thư mục `./downloads`.
+
+3. Scan episodes and start a test download. The output MP4 will appear in `./downloads`.
 
 ---
 
-## ⚠️ Lưu ý Kỹ Thuật
+## 🏗️ Architecture
 
-- **Bảo mật DRM**: Đối với các nội dung trả phí có cơ chế mã hóa bản quyền DRM (Widevine, FairPlay), video tải về qua FFmpeg thông thường sẽ bị lỗi màn hình đen hoặc không giải mã được.
-- **Hết hạn Token (Timeout)**: Đường dẫn m3u8 của các trang phim thường đính kèm token xác thực ngắn hạn. Do đó, hệ thống được thiết kế để bắt link và truyền trực tiếp vào FFmpeg tải ngay lập tức để tránh lỗi hết hạn liên kết.
+```
+M3U8-Downloader/
+├── src/
+│   ├── index.js        # Entry point — CLI mode or Web UI server
+│   ├── server.js       # Express + WebSocket server, REST API routes
+│   ├── browser.js      # Playwright browser automation (scraping, M3U8 interception)
+│   ├── parser.js       # M3U8 master playlist parsing, track detection & selection
+│   ├── queue.js        # Persistent JSON download queue manager
+│   └── downloader.js   # FFmpeg & N_m3u8DL-RE download engines, subtitle handler
+├── public/
+│   ├── index.html      # Web Dashboard UI
+│   ├── style.css       # Dark glassmorphism theme
+│   ├── app.js          # Client-side logic (WebSocket, DOM rendering)
+│   └── i18n.js         # Vietnamese/English translation system
+├── test/
+│   └── mock_server.js  # Local mock streaming server for testing
+├── config.json         # System configuration
+├── Quick_Start.bat     # One-click Windows launcher
+├── Stop_Server.bat     # Graceful/forced shutdown script
+└── package.json
+```
+
+---
+
+## ⚠️ Technical Notes
+
+- **DRM-Protected Content**: Videos encrypted with DRM (Widevine, FairPlay) will result in a black screen or decryption failure when downloaded via FFmpeg. This tool does not bypass DRM.
+- **Token Expiration**: M3U8 URLs from streaming sites often include short-lived authentication tokens. The system is designed to intercept and immediately pass URLs to the download engine to minimize the risk of token expiry.
+- **Windows Only**: The folder picker dialog and `.bat` launchers are Windows-specific. The core Node.js server and CLI mode work cross-platform, but the native folder picker requires Windows PowerShell.
+
+---
+
+## 📄 License
+
+This project is provided as-is for educational and personal use.
